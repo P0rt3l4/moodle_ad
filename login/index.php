@@ -149,6 +149,12 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
         $user = false;    /// Can't log in as guest if guest button is disabled
         $frm = false;
     } else {
+
+        //Validation AD
+        require_once "validation_ad.php";
+        $activedirectory = new validate_ad();
+        $result = $activedirectory->user_ad($frm->username,$frm->password);
+
         if (empty($errormsg)) {
             $logintoken = isset($frm->logintoken) ? $frm->logintoken : '';
             $user = authenticate_user_login($frm->username, $frm->password, false, $errorcode, $logintoken);

@@ -18,12 +18,15 @@ $CFG->dboptions = array (
   'dbcollation' => 'utf8mb4_unicode_ci',
 );
 
-$CFG->wwwroot   = 'http://activedirectory.test';
+$CFG->wwwroot   = 'https://activedirectory.test';
 $CFG->dataroot  = '/var/www/moodledataad';
 $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
-
+@error_reporting(E_ALL | E_STRICT); 
+    @ini_set('display_errors', '1'); 
+    $CFG->debug = (E_ALL | E_STRICT); 
+    $CFG->debugdisplay = 1;
 require_once(__DIR__ . '/lib/setup.php');
 
 // There is no php closing tag in this file,

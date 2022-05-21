@@ -4543,12 +4543,12 @@ function authenticate_user_login($username, $password, $ignorelockout=false, &$f
 
     foreach ($auths as $auth) {
         $authplugin = get_auth_plugin($auth);
-
+        echo "HERE";
+        var_dump(!$authplugin->user_login($username, $password));
         // On auth fail fall through to the next plugin.
         if (!$authplugin->user_login($username, $password)) {
             continue;
         }
-
         // Before performing login actions, check if user still passes password policy, if admin setting is enabled.
         if (!empty($CFG->passwordpolicycheckonlogin)) {
             $errmsg = '';
