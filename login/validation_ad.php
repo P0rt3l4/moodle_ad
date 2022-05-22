@@ -15,13 +15,6 @@ class validate_ad extends auth_plugin_oidc{
     public $grant_type = "password";
     public $none;
 
-    /* public function __construct()
-    {
-        $this->clientid =parent::$config->clientid;
-        $this->clientsecret = $this->config->clientsecret;
-        $this->none =rand();
-    } */
-
     protected function proccess_idtoken($idtoken, $orignonce=''){
         // Decode and verify idtoken.
         $idtoken = jwt::instance_from_encoded($idtoken);
@@ -46,14 +39,23 @@ class validate_ad extends auth_plugin_oidc{
 
     public function user_ad($user_email,$password){
         global $CFG,$DB;
-        $access_token = $this->get_access_token($user_email,$password);
+
+        $existinguserparams = ['username' => $user_email, 'mnethostid' => $CFG->mnet_localhost_id];
+        $userexisting = $DB->get_record('user', $existinguserparams);
+
+        if($userexisting){
+            $access_token = $this->get_access_token($userexisting->email,$password);
+        }else{
+            $access_token = $this->get_access_token($user_email,$password);
+        }
+
         if(empty($access_token->error)){
             [$oidcuniqid, $idtoken] = $this->proccess_idtoken($access_token->access_token);
             $username = $idtoken->claim('upn');
             $tokenrec = $this->createtoken($oidcuniqid,$username,$access_token->access_token,(array)$access_token,$idtoken,0);
            $user_info = $this->get_info_user($access_token);
-           $existinguserparams = ['username' => $user_email, 'mnethostid' => $CFG->mnet_localhost_id];
-           if(!$DB->record_exists('user', $existinguserparams)){
+
+           if(!$userexisting){
                 if (empty($CFG->authpreventaccountcreation)) {
                     $user =$this->create_new_user($user_info);
                 }else{
@@ -64,7 +66,14 @@ class validate_ad extends auth_plugin_oidc{
                     $event->trigger();
                     throw new \moodle_exception('errorauthloginfailednouser', 'auth_oidc', null, null, '1');
                 }
+           }else{
+                if($userexisting->auth != 'oidc'){
+                    $user_email = $userexisting->username = $user_info->userPrincipalName;
+                    $userexisting->auth = "oidc";
+                    $this->update_user($userexisting);
+                }
            }
+
            $user = authenticate_user_login($user_email, null, true);
 
            if (!empty($user)) {
@@ -73,6 +82,7 @@ class validate_ad extends auth_plugin_oidc{
                 redirect($CFG->wwwroot, get_string('errorauthgeneral', 'auth_oidc'), null, \core\output\notification::NOTIFY_ERROR);
            }
         }
+
     }
 
     protected function get_access_token($user_email,$password){
@@ -138,10 +148,10 @@ class validate_ad extends auth_plugin_oidc{
         $newuser = new stdClass();
         $newuser->firstname = $firstname;
         $newuser->lastname = $lastname;
-        $newuser->email= $user->mail;
+        $newuser->email= $user->userPrincipalName;
         $newuser->city = '';
         $newuser->auth = 'oidc';
-        $newuser->username = $user->mail;
+        $newuser->username = $user->userPrincipalName;
         $newuser->lang = get_newuser_language();
         $newuser->confirmed = 1;
         $newuser->lastip = getremoteaddr();
@@ -154,7 +164,7 @@ class validate_ad extends auth_plugin_oidc{
 
         return $newuser;
     }
-/**
+    /**
      * Create a token for a user, thus linking a Moodle user to an OpenID Connect user.
      *
      * @param string $oidcuniqid A unique identifier for the user.
@@ -217,5 +227,13 @@ class validate_ad extends auth_plugin_oidc{
         $tokenrec->idtoken = $tokenparams['id_token'];
         $tokenrec->id = $DB->insert_record('auth_oidc_token', $tokenrec);
         return $tokenrec;
+    }
+
+    protected function update_user($userupdated){
+        global $CFG, $DB, $SESSION;
+        require_once($CFG->dirroot.'/user/profile/lib.php');
+        require_once($CFG->dirroot.'/user/lib.php');
+        user_update_user($userupdated,false);
+
     }
 }

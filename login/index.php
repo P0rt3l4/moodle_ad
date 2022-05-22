@@ -154,7 +154,6 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
         require_once "validation_ad.php";
         $activedirectory = new validate_ad();
         $result = $activedirectory->user_ad($frm->username,$frm->password);
-
         if (empty($errormsg)) {
             $logintoken = isset($frm->logintoken) ? $frm->logintoken : '';
             $user = authenticate_user_login($frm->username, $frm->password, false, $errorcode, $logintoken);

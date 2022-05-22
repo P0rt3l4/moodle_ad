@@ -159,8 +159,10 @@ class authcode extends base {
         if($code){
             $tokenvalid = (!empty($tokenrec) && !empty($code) && $tokenrec->authcode === $code) ? true : false;
             return ($userexists === true && $tokenvalid === true) ? true : false;
+        }else if($tokenrec){
+            return true;
         }
-        return true;
+        return false;
     }
 
     /**
